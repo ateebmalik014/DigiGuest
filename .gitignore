@@ -1,0 +1,36 @@
+# Runtime data: SQLite databases, uploads, and the generated host session secret
+/data/
+**/data/
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
+.host_session_secret
+
+# Uploaded/user-provided files (uploads are stored under data/ by this app)
+/uploads/
+**/uploads/
+
+# Python virtual environments, caches, and compiled files
+.venv/
+**/.venv/
+venv/
+env/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+
+# Local environment variables and credentials
+.env
+.env.*
+*.key
+
+# Local editor and runner scratch files
+tempCodeRunnerFile.*
+*.tmp
+*.swp
+*~
+.DS_Store
+Thumbs.db

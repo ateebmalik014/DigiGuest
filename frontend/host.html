@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>DigiGuest Host</title>
+
+<link rel="stylesheet" href="/static/style.css">
+
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+<style>
+  .login-box {
+    max-width: 480px;
+    margin: 40px auto;
+  }
+
+  .login-title {
+    text-align: center;
+  }
+
+  .login-title p {
+    margin-top: 6px;
+  }
+
+  .login-error {
+    color: #c62828;
+    margin-top: 14px;
+    font-weight: 600;
+    text-align: center;
+  }
+
+  .dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logout-btn {
+    width: auto;
+    margin-top: 0;
+    padding: 10px 16px;
+  }
+
+  .host-badge {
+    display: inline-block;
+    padding: 7px 11px;
+    border-radius: 999px;
+    background: #eef2f7;
+    color: #162033;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .host-results { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .host-results p { margin: 0; padding: 12px; background: #fff; border: 1px solid #e7ebf1; border-radius: 12px; }
+  .host-results b { display: block; color: #6b7484; font-size: 12px; margin-bottom: 5px; }
+  .status-badge { display: inline-block; padding: 8px 12px; border-radius: 999px; font-size: 13px; font-weight: 800; }
+  .status-success { background: #e6f7ed; color: #167344; }
+  .status-exempt { background: #fff4d6; color: #795600; }
+  .status-error { background: #fde9e7; color: #a12820; }
+  .status-neutral { background: #eef2f7; color: #4e596b; }
+  .success-text { color: #167344; font-weight: 700; }
+  .error-text { color: #a12820; font-weight: 700; }
+  @media (max-width: 480px) { .host-results { grid-template-columns: 1fr; } }
+
+  #reader {
+    margin: 18px auto 0;
+  }
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+  <!-- =========================
+       HOST LOGIN
+  ========================== -->
+
+  <section id="loginSection" class="card login-box">
+
+    <div class="login-title">
+
+      <div class="logo" style="margin:0 auto 16px;">
+        DG
+      </div>
+
+      <h1>Host Login</h1>
+
+      <p class="muted">
+        Sign in to access the DigiGuest Host Portal.
+      </p>
+
+    </div>
+
+
+    <label for="hostEmail">
+      Host Email
+    </label>
+
+    <input
+      id="hostEmail"
+      type="email"
+      placeholder="host@digiguest.com"
+      autocomplete="username"
+    >
+
+
+    <label for="hostPassword">
+      Password
+    </label>
+
+    <input
+      id="hostPassword"
+      type="password"
+      placeholder="Enter password"
+      autocomplete="current-password"
+    >
+
+
+    <button onclick="login()">
+      Login
+    </button>
+
+    <p class="muted">Local demo credentials: host@digiguest.com / 123456</p>
+
+    <p id="loginError" class="login-error"></p>
+
+  </section>
+
+
+  <!-- =========================
+       HOST DASHBOARD
+  ========================== -->
+
+  <div id="dashboard" class="hidden">
+
+    <header>
+
+      <div class="logo">
+        DG
+      </div>
+
+      <div style="flex:1;">
+        <h1>DigiGuest Host</h1>
+
+        <p>
+          Host verification dashboard
+        </p>
+        <p class="muted">Hackathon prototype. Face/liveness results are demo checks, not production biometric security.</p>
+      </div>
+
+      <button
+        class="logout-btn"
+        onclick="logout()"
+      >
+        Logout
+      </button>
+
+    </header>
+
+
+    <section class="card">
+
+      <div class="dashboard-header">
+
+        <div>
+          <h2>Host Dashboard</h2>
+
+          <p class="muted">
+            Verify a guest before check-in.
+          </p>
+        </div>
+
+        <span
+          id="loggedInEmail"
+          class="host-badge"
+        ></span>
+
+      </div>
+
+    </section>
+
+
+    <!-- =========================
+         QR SCANNER
+    ========================== -->
+
+    <section class="card">
+
+      <h2>Scan Guest QR</h2>
+
+      <p class="muted">
+        Scan the QR code displayed on the guest's
+        DigiGuest digital pass.
+      </p>
+
+      <div
+        id="reader"
+        style="width:100%; max-width:500px;"
+      ></div>
+
+      <p
+        id="scanMessage"
+        class="muted"
+      ></p>
+
+    </section>
+
+
+    <!-- =========================
+         MANUAL TOKEN
+    ========================== -->
+
+    <section class="card">
+
+      <h2>Enter Token Manually</h2>
+
+      <p class="muted">
+        If QR scanning doesn't work, enter the
+        guest token manually.
+      </p>
+
+      <input
+        id="tokenInput"
+        placeholder="e.g. DG-XXXXXXXXXX"
+        autocomplete="off"
+      >
+
+      <button onclick="lookupManual()">
+        Verify Guest
+      </button>
+
+    </section>
+
+
+    <!-- =========================
+         GUEST RESULT
+    ========================== -->
+
+    <section
+      id="result"
+      class="card hidden"
+    >
+
+      <div
+        id="status"
+        class="status-badge status-success"
+      ></div>
+
+      <p class="muted" style="margin-bottom:4px;">Primary guest</p>
+      <h2 id="guestName"></h2>
+
+      <div class="details host-results">
+
+        <p>
+          <b>Booking ID</b>
+          <span id="booking"></span>
+        </p>
+
+        <p>
+          <b>Total guests</b>
+          <span id="count"></span>
+        </p>
+
+        <p><b>Verified guests</b><span id="verifiedCount"></span></p>
+        <p><b>Under-5 exempt</b><span id="exemptCount"></span></p>
+        <p><b>Verification status</b><span id="verificationStatus" class="success-text"></span></p>
+        <p><b>Check-in status</b><span id="checkinStatus" class="status-badge status-neutral">Not checked in</span></p>
+
+      </div>
+
+      <button
+  id="checkin"
+  onclick="checkIn()"
+>
+  Complete Check-in
+</button>
+
+<button
+  id="scanAnother"
+  onclick="scanAnotherGuest()"
+>
+  Scan Another Guest
+</button>
+
+<p
+  id="checkinMsg"
+  class="muted"
+></p>
+
+    </section>
+
+  </div>
+
+</div>
+
+
+<script>
+
+/* =====================================
+   LOGIN
+===================================== */
+
+async function login() {
+  const email = document.getElementById("hostEmail").value.trim();
+  const password = document.getElementById("hostPassword").value;
+  const error = document.getElementById("loginError");
+  const button = document.querySelector("#loginSection button");
+  if (!email || !password) {
+    error.textContent = "Please enter your email and password.";
+    return;
+  }
+  button.disabled = true;
+  error.textContent = "Signing in...";
+  try {
+    const response = await fetch("/api/host/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      error.textContent = data.detail || "Host sign-in failed.";
+      return;
+    }
+    error.textContent = "";
+    document.getElementById("loginSection").classList.add("hidden");
+    document.getElementById("dashboard").classList.remove("hidden");
+    document.getElementById("loggedInEmail").textContent = email;
+    startScanner();
+  } catch (loginError) {
+    console.error("Host login error:", loginError);
+    error.textContent = "Could not contact the DigiGuest server.";
+  } finally {
+    button.disabled = false;
+  }
+}
+
+
+/* =====================================
+   LOGOUT
+===================================== */
+
+async function logout() {
+
+  // Stop and completely clean up the camera
+  await stopScanner();
+  try {
+    await fetch("/api/host/logout", { method: "POST" });
+  } catch (error) {
+    console.warn("Host logout request failed:", error);
+  }
+
+  // Hide dashboard
+  document
+    .getElementById("dashboard")
+    .classList
+    .add("hidden");
+
+  // Show login
+  document
+    .getElementById("loginSection")
+    .classList
+    .remove("hidden");
+
+  // Clear login fields
+  document
+    .getElementById("hostEmail")
+    .value = "";
+
+  document
+    .getElementById("hostPassword")
+    .value = "";
+
+  // Clear messages
+  document
+    .getElementById("loginError")
+    .textContent = "";
+
+  document
+    .getElementById("scanMessage")
+    .textContent = "";
+
+  // Clear guest result
+  document
+    .getElementById("result")
+    .classList
+    .add("hidden");
+
+  // Clear token
+  document
+    .getElementById("tokenInput")
+    .value = "";
+
+  // Reset scanner state
+  currentToken = "";
+  qrProcessing = false;
+
+}
+
+function scanAnotherGuest() {
+
+  document.getElementById("result").classList.add("hidden");
+
+  document.getElementById("tokenInput").value = "";
+
+  document.getElementById("scanMessage").textContent =
+    "Starting camera...";
+
+  document.getElementById("checkinMsg").textContent = "";
+
+  currentToken = "";
+  qrProcessing = false;
+
+
+  if (window.qrScanner) {
+
+    window.qrScanner
+      .stop()
+      .catch(() => {})
+      .finally(() => {
+
+        window.qrScanner = null;
+
+        startScanner();
+
+      });
+
+  } else {
+
+    startScanner();
+
+  }
+
+}
+
+/* =====================================
+   GUEST LOOKUP
+===================================== */
+
+let currentToken = "";
+let qrProcessing = false;
+
+function showInvalidQr(message) {
+  currentToken = "";
+  document.getElementById("result").classList.remove("hidden");
+  const status = document.getElementById("status");
+  status.textContent = "INVALID / EXPIRED QR";
+  status.className = "status-badge status-error";
+  document.getElementById("guestName").textContent = "Guest pass unavailable";
+  document.getElementById("booking").textContent = "—";
+  document.getElementById("count").textContent = "—";
+  document.getElementById("verifiedCount").textContent = "—";
+  document.getElementById("exemptCount").textContent = "—";
+  const verification = document.getElementById("verificationStatus");
+  verification.textContent = "Invalid / expired QR";
+  verification.className = "error-text";
+  const checkinStatus = document.getElementById("checkinStatus");
+  checkinStatus.textContent = "Unavailable";
+  checkinStatus.className = "status-badge status-neutral";
+  document.getElementById("checkin").disabled = true;
+  document.getElementById("checkinMsg").textContent = message;
+  document.getElementById("scanMessage").textContent = "Invalid or expired QR token.";
+}
+
+async function showHostLoginRequired(message) {
+  await stopScanner();
+  document.getElementById("dashboard").classList.add("hidden");
+  document.getElementById("loginSection").classList.remove("hidden");
+  document.getElementById("loginError").textContent = message || "Host login required. Please sign in again.";
+}
+
+async function lookupGuest(token) {
+
+  // Clean the token received from QR or manual input
+  token = String(token || "")
+    .trim()
+    .replace(/\s+/g, "");
+
+  if (!token) {
+    showInvalidQr("Enter or scan a valid guest pass token.");
+    return;
+  }
+
+  console.log("Looking up guest token:", token);
+
+  currentToken = token;
+
+  // Show the token that was detected
+  document.getElementById("tokenInput").value = token;
+
+  document.getElementById("scanMessage").textContent =
+    "QR detected. Verifying guest...";
+
+  try {
+
+    const controller = new AbortController();
+
+    // Prevent the screen from getting stuck forever
+    const timeout = setTimeout(() => {
+      controller.abort();
+    }, 8000);
+
+    const res = await fetch(
+      "/api/guest/" + encodeURIComponent(token),
+      {
+        method: "GET",
+        cache: "no-store",
+        signal: controller.signal
+      }
+    );
+
+    clearTimeout(timeout);
+
+    const data = await res.json();
+
+    console.log("Guest lookup response:", data);
+
+    if (res.status === 401) {
+      await showHostLoginRequired(data.detail);
+      return;
+    }
+
+    if (!res.ok) {
+      showInvalidQr(data.detail || "No matching guest pass was found.");
+      return;
+    }
+
+    // Guest found successfully
+    document.getElementById("scanMessage").textContent = "Guest pass loaded.";
+
+    document
+      .getElementById("result")
+      .classList
+      .remove("hidden");
+
+    document
+      .getElementById("guestName")
+      .textContent =
+      data.name;
+
+    document
+      .getElementById("booking")
+      .textContent =
+      data.booking_id;
+
+    document
+      .getElementById("count")
+      .textContent =
+      data.guest_count;
+
+    document.getElementById("verifiedCount").textContent = data.verified_guest_count ?? 0;
+    document.getElementById("exemptCount").textContent = data.under5_exempt_count ?? 0;
+    const verification = document.getElementById("verificationStatus");
+    verification.textContent = data.verification_status || (data.status === "VERIFIED" ? "Verified" : "Verification failed");
+    verification.className = data.status === "VERIFIED" ? "success-text" : "error-text";
+
+    const status = document.getElementById("status");
+    status.textContent = data.checked_in ? "ALREADY CHECKED IN" : "GROUP PASS VERIFIED";
+    status.className = `status-badge ${data.checked_in ? "status-neutral" : "status-success"}`;
+
+    const checkinStatus = document.getElementById("checkinStatus");
+    checkinStatus.textContent = data.checked_in ? "Already checked in" : "Not checked in";
+    checkinStatus.className = "status-badge status-neutral";
+
+    document.getElementById("checkin").disabled = data.checked_in || data.status !== "VERIFIED";
+    document.getElementById("checkin").textContent = data.checked_in ? "Already Checked In" : "Complete Group Check-in";
+
+    document
+      .getElementById("checkinMsg")
+      .textContent =
+      data.checked_in
+        ? "This group has already been checked in."
+        : "";
+
+  }
+
+  catch (error) {
+
+    console.error("Guest lookup error:", error);
+
+    if (error.name === "AbortError") {
+
+      document.getElementById("scanMessage").textContent =
+        "Guest verification timed out. Make sure the DigiGuest server is running.";
+
+      showInvalidQr("Guest verification timed out. Check that the DigiGuest server is running.");
+
+    } else {
+
+      document.getElementById("scanMessage").textContent =
+        "Unable to connect to the DigiGuest server.";
+
+      showInvalidQr("Unable to connect to the DigiGuest server.");
+
+    }
+
+  }
+
+}
+
+
+/* =====================================
+   MANUAL TOKEN
+===================================== */
+
+function lookupManual() {
+
+  const token =
+    document
+      .getElementById("tokenInput")
+      .value;
+
+  lookupGuest(token);
+
+}
+
+
+/* =====================================
+   QR SCANNER
+===================================== */
+
+async function onScanSuccess(decodedText) {
+
+  if (qrProcessing) {
+    return;
+  }
+
+  qrProcessing = true;
+
+  console.log("RAW QR DATA:", decodedText);
+
+  const token = String(decodedText || "")
+    .trim()
+    .replace(/\s+/g, "");
+
+  console.log("CLEAN QR TOKEN:", token);
+
+  document
+    .getElementById("scanMessage")
+    .textContent =
+    "QR scanned successfully. Verifying guest...";
+
+  // Properly stop AND clear the scanner
+  await stopScanner();
+
+  // Put scanned token into the token field
+  document
+    .getElementById("tokenInput")
+    .value = token;
+
+  // Verify guest
+  lookupGuest(token);
+
+}
+
+
+function onScanFailure(error) {
+
+  /*
+    Scanner continuously searches
+    for a QR code.
+  */
+
+}
+
+async function stopScanner() {
+
+  const scanner = window.qrScanner;
+
+  if (!scanner) {
+    return;
+  }
+
+  try {
+    await scanner.stop();
+  } catch (error) {
+    console.warn("Scanner stop warning:", error);
+  }
+
+  try {
+    await scanner.clear();
+  } catch (error) {
+    console.warn("Scanner clear warning:", error);
+  }
+
+  window.qrScanner = null;
+
+  const reader = document.getElementById("reader");
+
+  if (reader) {
+    reader.innerHTML = "";
+  }
+
+}
+
+/* =====================================
+   START SCANNER
+===================================== */
+
+function startScanner() {
+
+  document.getElementById("scanMessage").textContent =
+    "Starting camera...";
+
+  try {
+
+    // Remove any previous scanner instance
+    // Remove previous scanner instance
+if (window.qrScanner) {
+  window.qrScanner = null;
+}
+
+// Completely clear the old camera/QR elements
+const reader = document.getElementById("reader");
+
+if (reader) {
+  reader.innerHTML = "";
+}
+
+// Create a completely new scanner
+window.qrScanner = new Html5Qrcode("reader");
+
+    window.qrScanner
+      .start(
+        { facingMode: "environment" },
+        {
+          fps: 10,
+          qrbox: {
+            width: 250,
+            height: 250
+          }
+        },
+        onScanSuccess,
+        onScanFailure
+      )
+      .then(() => {
+
+        document.getElementById("scanMessage").textContent =
+          "Camera ready. Scan the guest QR code.";
+
+      })
+      .catch(error => {
+
+        console.error("Camera start error:", error);
+
+        document.getElementById("scanMessage").textContent =
+          "Could not start camera. Please allow camera access.";
+
+      });
+
+  } catch (error) {
+
+    console.error("QR scanner error:", error);
+
+    document.getElementById("scanMessage").textContent =
+      "Could not start camera.";
+
+  }
+
+}
+
+
+/* =====================================
+   CHECK-IN
+===================================== */
+
+async function checkIn() {
+
+  if (!currentToken) {
+
+    alert(
+      "No guest selected."
+    );
+
+    return;
+
+  }
+
+
+  try {
+    const res = await fetch("/api/check-in", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: currentToken })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      if (res.status === 401) {
+        await showHostLoginRequired(data.detail);
+        return;
+      }
+      document.getElementById("checkinMsg").textContent = data.detail || "Check-in failed. Please try again.";
+      return;
+    }
+
+    document.getElementById("status").textContent = "CHECK-IN COMPLETED";
+    document.getElementById("status").className = "status-badge status-success";
+    document.getElementById("checkinStatus").textContent = "Check-in completed";
+    document.getElementById("checkinStatus").className = "status-badge status-success";
+    document.getElementById("checkin").disabled = true;
+    document.getElementById("checkin").textContent = "Check-in Completed";
+    document.getElementById("checkinMsg").textContent = "The group has been checked in.";
+  } catch (error) {
+    console.error("Check-in error:", error);
+    document.getElementById("checkinMsg").textContent = "Could not complete check-in. Check the server connection and try again.";
+  }
+
+}
+
+</script>
+
+</body>
+</html>

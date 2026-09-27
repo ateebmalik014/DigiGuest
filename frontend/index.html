@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DigiGuest</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="logo">DG</div>
+    <div>
+      <h1>DigiGuest</h1>
+      <p>Digital guest verification & contactless check-in</p>
+    </div>
+  </header>
+
+  <div class="progress">
+    <span class="active">1</span><i></i><span>2</span><i></i><span>3</span><i></i><span>4</span>
+  </div>
+
+  <section id="step1" class="card">
+    <h2>Start verification</h2>
+    <p class="muted">Complete your details before arrival.</p>
+    <label>Booking ID</label>
+    <input id="booking" placeholder="e.g. DG48291">
+    <button onclick="next(2)">Continue</button>
+  </section>
+
+  <section id="step2" class="card hidden">
+    <h2>Identity verification</h2>
+    <p class="muted">Hackathon prototype: use synthetic/demo IDs only. Face and liveness checks are demonstrations, not real biometric security.</p>
+    <p class="muted">For each guest aged 5 or older, upload a government ID and take a live selfie. Children under 5 do not need either.</p>
+    
+    <label>Primary guest age category</label>
+    <select id="primaryAge">
+      <option value="">Choose an age category</option>
+      <option value="under5">Under 5</option>
+      <option value="5plus">5 or older</option>
+    </select>
+
+    <div id="primaryUploads" class="hidden">
+    <label>Primary guest government ID image</label>
+    <input id="idFile" type="file" accept="image/jpeg,image/png,image/webp">
+
+  <div id="idPreviewContainer" class="hidden">
+    <p class="muted">ID Preview</p>
+    <img id="idPreview" alt="Government ID preview">
+</div>
+
+<p id="idFileMessage" class="muted"></p>
+<pre id="ocrResult" class="ocr-result"></pre>
+    <label>Primary guest live selfie</label>
+    <input id="selfieFile" type="file" accept="image/jpeg,image/png,image/webp" capture="user">
+    <div class="checks">
+      <div id="ocrCheck">○ ID document check</div>
+      <div id="faceCheck">○ Face match</div>
+      <div id="liveCheck">○ Liveness</div>
+    </div>
+    </div>
+    <p class="muted">Use synthetic/demo ID documents only.</p>
+    <button onclick="continueToGuestDetails()">Continue to guest details</button>
+    <p id="primaryVerifyMessage" class="muted"></p>
+  </section>
+
+  <section id="step3" class="card hidden">
+  <h2>Guest details</h2>
+  <p class="muted">Enter the primary guest’s name and total number of guests. Guests under 5 are exempt from ID and selfie checks.</p>
+  <label>Primary guest name</label>
+  <input id="name" type="text" maxlength="120" autocomplete="name" placeholder="Full name">
+  <label>Number of guests</label>
+  <input id="guestCount" type="number" min="1" max="20" value="1">
+  <div id="additionalGuests"></div>
+
+  <button onclick="completeVerification()">
+    Confirm & Generate Guest Pass
+  </button>
+  <p id="groupError" class="status-badge status-error hidden" role="alert"></p>
+</section>
+
+  <section id="step4" class="card hidden">
+    <div id="passStatus" class="status-badge status-success">✓ GROUP VERIFIED</div>
+    <p class="muted pass-primary-label">Primary guest</p>
+    <h2 id="passName">Guest</h2>
+    <div class="details pass-details">
+      <p><b>Booking ID</b><span id="passBooking"></span></p>
+      <p><b>Total guests</b><span id="passCount"></span></p>
+      <p><b>Verified guests</b><span id="passVerifiedCount"></span></p>
+      <p><b>Under-5 exempt</b><span id="passExemptCount"></span></p>
+      <p><b>Verification status</b><span id="passVerificationStatus" class="status-text success-text"></span></p>
+    </div>
+    <img id="qr" class="qr" alt="Guest QR">
+    <p class="token" id="token"></p>
+  </section>
+</div>
+<script src="/static/app.js"></script>
+</body>
+</html>
